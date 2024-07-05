@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 from regulations_rag.document import Document
-from regulations_rag.regulation_reader import  load_csv_data
+from regulations_rag.file_tools import  load_csv_data
 from regulations_rag.reference_checker import ReferenceChecker
 from regulations_rag.regulation_table_of_content import StandardTableOfContent
 
@@ -142,7 +142,7 @@ class CEMAD_User_Queries(Document):
         return text
 
     def get_toc(self):
-        toc = StandardTableOfContent(root_node_name = "User Queries", index_checker = self.reference_checker, regulation_df = self.document_as_df)
+        toc = StandardTableOfContent(root_node_name = "User Queries", reference_checker = self.reference_checker, regulation_df = self.document_as_df)
         return toc
 
 
