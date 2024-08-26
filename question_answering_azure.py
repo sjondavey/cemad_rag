@@ -7,6 +7,9 @@ import re
 import bcrypt
 from openai import OpenAI
 
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+
 from regulations_rag.rerank import RerankAlgos
 
 from regulations_rag.corpus_chat import ChatParameters
@@ -29,6 +32,8 @@ logger.setLevel(ANALYSIS_LEVEL)
 # App title - Must be first Streamlit command
 st.set_page_config(page_title="💬 Excon Manual Question Answering", layout="wide")
 
+KEY_VAULT_URL = "https://cemadragkeyvault.vault.azure.net/"
+credential = DefaultAzureCredential()
 
 if 'user_id' not in st.session_state:
     st.session_state['user_id'] = ""
@@ -87,7 +92,9 @@ def load_data():
     logger.debug(f'--> cache_resource called again to reload data')
     with st.spinner(text="Loading the excon documents and index - hang tight! This should take 5 seconds."):
 
-        key = st.secrets["index"]["decryption_key"]
+        secret_name = "DECRYPTION-KEY-CEMAD"
+        secret_client = SecretClient(vault_url=KEY_VAULT_URL, credential=credential)
+        key = secret_client.get_secret(secret_name)
         corpus_index = CEMADCorpusIndex(key)
 
         rerank_algo = RerankAlgos.LLM
@@ -110,7 +117,10 @@ def load_data():
         return chat
 
 if 'openai_api' not in st.session_state:
-    st.session_state['openai_client'] = OpenAI(api_key = st.secrets['openai']['OPENAI_API_KEY'])
+    secret_name = "OPENAI-API-KEY-CEMAD"
+    secret_client = SecretClient(vault_url=KEY_VAULT_URL, credential=credential)
+    api_key = secret_client.get_secret(secret_name)
+    st.session_state['openai_client'] = OpenAI(api_key = api_key)
 
 
 if 'selected_model' not in st.session_state.keys():
