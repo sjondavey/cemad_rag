@@ -95,7 +95,7 @@ def load_data():
         secret_name = "DECRYPTION-KEY-CEMAD"
         secret_client = SecretClient(vault_url=KEY_VAULT_URL, credential=credential)
         key = secret_client.get_secret(secret_name)
-        corpus_index = CEMADCorpusIndex(key)
+        corpus_index = CEMADCorpusIndex(key.value)
 
         rerank_algo = RerankAlgos.LLM
         rerank_algo.params["openai_client"] = st.session_state['openai_client']
@@ -120,7 +120,7 @@ if 'openai_api' not in st.session_state:
     secret_name = "OPENAI-API-KEY-CEMAD"
     secret_client = SecretClient(vault_url=KEY_VAULT_URL, credential=credential)
     api_key = secret_client.get_secret(secret_name)
-    st.session_state['openai_client'] = OpenAI(api_key = api_key)
+    st.session_state['openai_client'] = OpenAI(api_key = api_key.value)
 
 
 if 'selected_model' not in st.session_state.keys():
