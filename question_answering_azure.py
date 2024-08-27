@@ -34,7 +34,7 @@ logger.setLevel(ANALYSIS_LEVEL)
 # App title - Must be first Streamlit command
 st.set_page_config(page_title="💬 Excon Manual Question Answering", layout="wide")
 
-if 'azure_variables' not in st.session_state:
+if 'key_vault' not in st.session_state:
     # Determine if the app is running locally or on Azure. When run locally, DefaultAzureCredential will default to 
     # environmentcredential and will pull the values AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_CLIENT_SECRET from the
     # .env file 
@@ -42,12 +42,11 @@ if 'azure_variables' not in st.session_state:
         # Load local .env file
         load_dotenv()
 
-    KEY_VAULT_URL = "https://cemadragkeyvault.vault.azure.net/"
 
     # https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.defaultazurecredential?view=azure-python
     # When the app is running in Azure, DefaultAzureCredential automatically detects if a managed identity exists for the App Service and, if so, uses it to access other Azure resources
-    credential = DefaultAzureCredential() 
-    st.session_state['azure_variables'] = True
+    st.session_state['credential'] = DefaultAzureCredential() 
+    st.session_state['key_vault'] = "https://cemadragkeyvault.vault.azure.net/"
 
 
 if 'user_id' not in st.session_state:
@@ -108,7 +107,7 @@ def load_data():
     with st.spinner(text="Loading the excon documents and index - hang tight! This should take 5 seconds."):
 
         secret_name = "DECRYPTION-KEY-CEMAD"
-        secret_client = SecretClient(vault_url=KEY_VAULT_URL, credential=credential)
+        secret_client = SecretClient(vault_url=st.session_state['key_vault'], credential=st.session_state['credential'])
         key = secret_client.get_secret(secret_name)
         corpus_index = CEMADCorpusIndex(key.value)
 
@@ -133,7 +132,7 @@ def load_data():
 
 if 'openai_api' not in st.session_state:
     secret_name = "OPENAI-API-KEY-CEMAD"
-    secret_client = SecretClient(vault_url=KEY_VAULT_URL, credential=credential)
+    secret_client = SecretClient(vault_url=st.session_state['key_vault'], credential=st.session_state['credential'])
     api_key = secret_client.get_secret(secret_name)
     st.session_state['openai_client'] = OpenAI(api_key = api_key.value)
 
