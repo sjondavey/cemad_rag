@@ -1,3 +1,4 @@
+# https://medium.com/@tophamcherie/authenticating-connecting-to-azure-key-vault-or-resources-programmatically-2e1936618789
 import logging
 
 import streamlit as st
@@ -6,6 +7,7 @@ import os
 import re
 import bcrypt
 from openai import OpenAI
+from dotenv import load_dotenv
 
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
@@ -32,11 +34,24 @@ logger.setLevel(ANALYSIS_LEVEL)
 # App title - Must be first Streamlit command
 st.set_page_config(page_title="💬 Excon Manual Question Answering", layout="wide")
 
-KEY_VAULT_URL = "https://cemadragkeyvault.vault.azure.net/"
-credential = DefaultAzureCredential()
+if 'azure_variables' not in st.session_state:
+    # Determine if the app is running locally or on Azure. When run locally, DefaultAzureCredential will default to 
+    # environmentcredential and will pull the values AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_CLIENT_SECRET from the
+    # .env file 
+    if os.getenv('AZURE_ENVIRONMENT') == 'local':
+        # Load local .env file
+        load_dotenv()
+
+    KEY_VAULT_URL = "https://cemadragkeyvault.vault.azure.net/"
+
+    # https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.defaultazurecredential?view=azure-python
+    # When the app is running in Azure, DefaultAzureCredential automatically detects if a managed identity exists for the App Service and, if so, uses it to access other Azure resources
+    credential = DefaultAzureCredential() 
+    st.session_state['azure_variables'] = True
+
 
 if 'user_id' not in st.session_state:
-    st.session_state['user_id'] = ""
+    st.session_state['user_id'] = "TODO: Get Name"
 
 ## Password
 if "password_correct" not in st.session_state.keys():
