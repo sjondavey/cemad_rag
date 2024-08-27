@@ -52,6 +52,7 @@ PyJWT==2.9.0
 pyproject_hooks==1.0.0
 pytest==8.1.1
 python-dateutil==2.9.0.post0
+python-dotenv==1.0.1
 pytz==2024.1
 rapidfuzz==3.7.0
 referencing==0.34.0
