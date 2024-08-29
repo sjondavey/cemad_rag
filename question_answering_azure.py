@@ -71,50 +71,6 @@ if 'user_id' not in st.session_state:
 if "password_correct" not in st.session_state.keys():
     st.session_state["password_correct"] = True
 
-### Password
-# def check_password():
-#     """Returns `True` if the user had a correct password."""
-
-#     def login_form():
-#         """Form with widgets to collect user information"""
-#         with st.form("Credentials"):
-#             st.text_input("Username", key="username")
-#             st.text_input("Password", type="password", key="password")
-#             st.form_submit_button("Log in", on_click=password_entered)
-
-#     def password_entered():
-#         """Checks whether a password entered by the user is correct."""
-#         pwd_raw = st.session_state['password']
-#         if st.session_state["username"] in st.secrets[
-#             "passwords"
-#         ] and bcrypt.checkpw(
-#             pwd_raw.encode(),
-#             st.secrets.passwords[st.session_state["username"]].encode(),
-#         ):
-#             st.session_state["password_correct"] = True
-#             logger.log(ANALYSIS_LEVEL, f"New questions From: {st.session_state['username']}")
-#             del st.session_state["password"]  # Don't store the username or password.
-#             del pwd_raw
-#             st.session_state["user_id"] = st.session_state["username"] 
-#             del st.session_state["username"]
-            
-#         else:
-#             st.session_state["password_correct"] = False
-
-#     # Return True if the username + password is validated.
-#     if st.session_state.get("password_correct", False):
-#         return True
-
-#     # Show inputs for username + password.
-#     login_form()
-#     if "password_correct" in st.session_state:
-#         st.error("😕 User not known or password incorrect")
-#     return False
-
-# if not check_password():
-#     st.stop()
-
-
 
 def load_data():
     logger.log(ANALYSIS_LEVEL, f"*** Loading data for {st.session_state['user_id']}. Should only happen once")
