@@ -4,13 +4,19 @@ import streamlit as st
 import security
 
 def setup_page(page_title):
+    print("utils.setup_page")
+
     st.set_page_config(
         page_title=page_title,
         page_icon="👋",
     )
 
-    if st.experimental_get_query_params().get('code'):
-        security.handle_redirect()
+    print(f'*******  st.query_params:')
+    print(st.query_params)
+    security.handle_redirect()
+    # if st.query_params.get('code'):
+    #     print("handling redirect")
+    #     security.handle_redirect()
 
     access_token = st.session_state.get('access_token')
 
