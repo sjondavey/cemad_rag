@@ -12,10 +12,12 @@ def deploy(base_folder):
 
     items_to_copy = [base_folder + "/cemad_rag/",
                      base_folder + "/.gitignore",
-                     base_folder + "/Question_Answering.py",
+                     base_folder + "/Ask_Questions.py",
+                     base_folder + "/streamlit_common.py",
                      base_folder + "/pages/",
                      base_folder + "/.streamlit/secrets.toml",
                      base_folder + "/inputs/",
+                     base_folder + "/.env/"
                      ]
 
 
