@@ -1,3 +1,5 @@
+#https://github.com/kevintupper/streamlit-auth-demo
+#https://learn.microsoft.com/en-us/entra/msal/python/getting-started/client-applications
 import streamlit as st
 import msal
 import requests
@@ -14,7 +16,7 @@ else:
 
 
 TENANT_ID = os.getenv('WEBSITE_AUTH_AAD_ALLOWED_TENANTS')
-CLIENT_ID = '29f43284-6d7d-4e00-ad65-40a31b9ad7ab'
+CLIENT_ID = 'f2ca13cc-44e7-462a-b71a-6b093a24e3d0'
 CLIENT_SECRET = os.getenv('MICROSOFT_PROVIDER_AUTHENTICATION_SECRET')
 
 AUTHORITY = f'https://login.microsoftonline.com/{TENANT_ID}'

@@ -11,11 +11,11 @@ import sys
 from datetime import datetime
 
 from streamlit_common import setup_for_azure, setup_for_streamlit, load_data
+from streamlit.components.v1 import html
 from footer import footer
 
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
-
 
 from regulations_rag.rerank import RerankAlgos
 
@@ -45,6 +45,10 @@ logger.setLevel(ANALYSIS_LEVEL)
 #     sys.argv[3] == "arguments"
 
 st.set_page_config(page_title="Excon Answers", page_icon="./publication_icon.jpg", layout="wide")
+
+with open("google_tracking.html") as f:
+    html_string = f.read()
+    html(html_string)
 
 # Start with username because we need it to create the log file
 if 'user_id' not in st.session_state:
