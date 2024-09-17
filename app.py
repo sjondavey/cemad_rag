@@ -16,6 +16,7 @@ from footer import footer
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 
+
 from regulations_rag.rerank import RerankAlgos
 
 from regulations_rag.corpus_chat import ChatParameters
