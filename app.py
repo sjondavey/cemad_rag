@@ -14,7 +14,6 @@ from streamlit_common import setup_for_azure, setup_for_streamlit, load_data
 from footer import footer
 
 from azure.identity import DefaultAzureCredential
-from azure.storage.blob import BlobServiceClient
 
 
 from regulations_rag.rerank import RerankAlgos

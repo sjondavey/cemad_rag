@@ -9,6 +9,7 @@ import streamlit as st
 
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
+from azure.storage.blob import BlobServiceClient
 
 from regulations_rag.rerank import RerankAlgos
 from regulations_rag.corpus_chat import ChatParameters
