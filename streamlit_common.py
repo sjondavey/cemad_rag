@@ -26,6 +26,18 @@ logging.addLevelName(ANALYSIS_LEVEL, 'ANALYSIS')
 logger = logging.getLogger(__name__)
 logger.setLevel(ANALYSIS_LEVEL)
 
+def _setup_blob_storage_for_logging(filename):
+    account_url = "https://chatlogsaccount.blob.core.windows.net/"
+    blob_service_client = BlobServiceClient(account_url, credential=st.session_state['credential'])
+    container_name = "cemadtest01"
+    st.session_state['output_file'] = blob_service_client.get_blob_client(container=container_name, blob=filename)
+    # Check if blob exists, if not create an append blob
+    try:
+        st.session_state['output_file'].get_blob_properties()  # Check if blob exists
+    except:
+        # Create an empty append blob if it doesn't exist
+        st.session_state['output_file'].create_append_blob()
+
 
 def setup_for_azure(filename):
     if 'service_provider' not in st.session_state:
@@ -45,24 +57,28 @@ def setup_for_azure(filename):
 
             # Load local .env file for credentials
             load_dotenv()
-            folder_to_write_to = "./user_data"
-            # Ensure the folder exists
-            os.makedirs(folder_to_write_to, exist_ok=True)            
-            st.session_state['output_file'] = os.path.join(folder_to_write_to, filename)
+
+            # folder_to_write_to = "./user_data"
+            # # Ensure the folder exists
+            # os.makedirs(folder_to_write_to, exist_ok=True)            
+            # st.session_state['output_file'] = os.path.join(folder_to_write_to, filename)
+            
+            _setup_blob_storage_for_logging(filename)
 
         else: # folder in Azure
             st.session_state['app_path'] = "https://cemadrag-c8cve3anewdpcdhf.southafricanorth-01.azurewebsites.net"
+            _setup_blob_storage_for_logging(filename)
 
-            account_url = "https://chatlogsaccount.blob.core.windows.net/"
-            blob_service_client = BlobServiceClient(account_url, credential=st.session_state['credential'])
-            container_name = "cemadtest01"
-            st.session_state['output_file'] = blob_service_client.get_blob_client(container=container_name, blob=filename)
-            # Check if blob exists, if not create an append blob
-            try:
-                st.session_state['output_file'].get_blob_properties()  # Check if blob exists
-            except:
-                # Create an empty append blob if it doesn't exist
-                st.session_state['output_file'].create_append_blob()
+            # account_url = "https://chatlogsaccount.blob.core.windows.net/"
+            # blob_service_client = BlobServiceClient(account_url, credential=st.session_state['credential'])
+            # container_name = "cemadtest01"
+            # st.session_state['output_file'] = blob_service_client.get_blob_client(container=container_name, blob=filename)
+            # # Check if blob exists, if not create an append blob
+            # try:
+            #     st.session_state['output_file'].get_blob_properties()  # Check if blob exists
+            # except:
+            #     # Create an empty append blob if it doesn't exist
+            #     st.session_state['output_file'].create_append_blob()
 
 
 
@@ -72,11 +88,11 @@ def setup_for_azure(filename):
         api_key = secret_client.get_secret(secret_name)
         st.session_state['openai_client'] = OpenAI(api_key = api_key.value)
 
-    if 'output_folder' not in st.session_state:
-        # Ensure the directory exists
-        # folder_to_write_to = "./user_data/"
-        # os.makedirs(folder_to_write_to, exist_ok=True)
-        st.session_state['output_folder'] = folder_to_write_to
+    # if 'output_folder' not in st.session_state:
+    #     # Ensure the directory exists
+    #     # folder_to_write_to = "./user_data/"
+    #     # os.makedirs(folder_to_write_to, exist_ok=True)
+    #     st.session_state['output_folder'] = folder_to_write_to
 
     if not "password_correct" in st.session_state: # No passwords yet in Azure but passwords required for other pages
         st.session_state["password_correct"] = True
@@ -183,10 +199,12 @@ def load_data(service_provider):
 
 def write_data_to_output(text):
     if st.session_state['service_provider'] == 'azure':
-        if os.getenv('AZURE_ENVIRONMENT') == 'local':            
-            # Write to the file
-            with open(st.session_state['output_file'], 'a') as file:
-                file.write(text + "\n")
+        st.session_state['output_file'].append_block(text + "\n")
 
-        else:
-            st.session_state['output_file'].append_block(text + "\n")
+        # if os.getenv('AZURE_ENVIRONMENT') == 'local':            
+        #     # Write to the file
+        #     with open(st.session_state['output_file'], 'a') as file:
+        #         file.write(text + "\n")
+
+        # else:
+        #     st.session_state['output_file'].append_block(text + "\n")
