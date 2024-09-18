@@ -45,6 +45,9 @@ logger.setLevel(ANALYSIS_LEVEL)
 
 st.set_page_config(page_title="Excon Answers", page_icon="./publication_icon.jpg", layout="wide")
 
+if 'log_locally' not in st.session_state:
+    st.session_state['log_locally'] = False
+
 # Start with username because we need it to create the log file
 if 'user_id' not in st.session_state:
     st.session_state['user_id'] = "TODO: Get Name"

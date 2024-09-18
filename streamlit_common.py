@@ -40,8 +40,10 @@ def _setup_blob_storage_for_logging(filename):
 
 
 def setup_for_azure(filename):
+
     if 'service_provider' not in st.session_state:
         st.session_state['service_provider'] = 'azure'
+
 
     if 'key_vault' not in st.session_state:
         # https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.defaultazurecredential?view=azure-python
@@ -57,13 +59,13 @@ def setup_for_azure(filename):
 
             # Load local .env file for credentials
             load_dotenv()
-
-            # folder_to_write_to = "./user_data"
-            # # Ensure the folder exists
-            # os.makedirs(folder_to_write_to, exist_ok=True)            
-            # st.session_state['output_file'] = os.path.join(folder_to_write_to, filename)
-            
-            _setup_blob_storage_for_logging(filename)
+            if st.session_state['log_locally']:
+                folder_to_write_to = "./user_data"
+                # Ensure the folder exists
+                os.makedirs(folder_to_write_to, exist_ok=True)            
+                st.session_state['output_file'] = os.path.join(folder_to_write_to, filename)
+            else:            
+                _setup_blob_storage_for_logging(filename)
 
         else: # folder in Azure
             st.session_state['app_path'] = "https://cemadrag-c8cve3anewdpcdhf.southafricanorth-01.azurewebsites.net"
@@ -199,12 +201,12 @@ def load_data(service_provider):
 
 def write_data_to_output(text):
     if st.session_state['service_provider'] == 'azure':
-        st.session_state['output_file'].append_block(text + "\n")
-
-        # if os.getenv('AZURE_ENVIRONMENT') == 'local':            
-        #     # Write to the file
-        #     with open(st.session_state['output_file'], 'a') as file:
-        #         file.write(text + "\n")
-
-        # else:
-        #     st.session_state['output_file'].append_block(text + "\n")
+        if os.getenv('AZURE_ENVIRONMENT') == 'local':            
+            if st.session_state['log_locally']:
+                # Write to the file
+                with open(st.session_state['output_file'], 'a') as file:
+                    file.write(text + "\n")
+            else:
+                st.session_state['output_file'].append_block(text + "\n")
+        else:
+            st.session_state['output_file'].append_block(text + "\n")
