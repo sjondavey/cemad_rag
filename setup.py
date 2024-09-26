@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cemad_rag',
-    version='0.5.5',
+    version='0.5.6',
     author='SJon',
     url='https://github.com/sjondavey/cemad_rag',
     license='LICENSE.txt',
