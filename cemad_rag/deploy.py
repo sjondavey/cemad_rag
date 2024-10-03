@@ -8,11 +8,12 @@ def deploy(base_folder):
     base_folder = ".." when running from "working" folder
 
     ''' 
-    destination = "e:/code/chat/cemad_rag"
+    destination = "d:/code/chat/cemad_rag"
 
     items_to_copy = [base_folder + "/cemad_rag/",
                      base_folder + "/.gitignore",
                      base_folder + "/app.py",
+                     base_folder + "/logging_config.py",
                      base_folder + "/footer.py",
                      base_folder + "/publication_icon.jpg",
                      base_folder + "/streamlit_common.py",

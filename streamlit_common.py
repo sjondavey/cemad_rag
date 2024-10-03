@@ -3,6 +3,7 @@ import os
 from openai import OpenAI
 import platform
 import bcrypt
+from dotenv import load_dotenv
 
 import streamlit as st
 
@@ -25,6 +26,14 @@ logging.addLevelName(ANALYSIS_LEVEL, 'ANALYSIS')
 logger = logging.getLogger(__name__)
 logger.setLevel(ANALYSIS_LEVEL)
 
+# Avoid using @st.cache_resource for the OpenAI API connection.
+# Caching resources like an API connection can lead to issues since the OpenAI API client 
+# manages state, and caching might cause problems if the state changes or if there are 
+# session-specific requirements. Moreover, OpenAI API connections do not need to be reused across 
+# sessions, and caching could result in stale or shared connections, which could lead to unintended behavior.
+def _get_openai_resource(openai_key):
+    return OpenAI(api_key = openai_key)
+
 # The container will be the same for all files in the session so only connect to it once.
 @st.cache_resource
 def _get_blog_container():
@@ -45,55 +54,54 @@ def _get_blog_container():
 
     return container_client
 
-
 @st.cache_resource
-def _setup_blob_storage_for_logging(filename):
+def _get_blob_for_global_logging(filename):
     container_client = _get_blog_container()
-    logging_blob = container_client.get_blob_client(filename)
+    blob_client = container_client.get_blob_client(filename)
     
-    blob_exists = logging_blob.exists()
+    blob_exists = blob_client.exists()
     if not blob_exists:
-        with open(st.session_state['temp_logging_file_name'], "rb") as temp_file:
+        with open(st.session_state['global_logging_file_name'], "rb") as temp_file:
             container_client.upload_blob(name=filename, data=temp_file, content_settings=ContentSettings(content_type='text/plain'))
-    # else:
-    #     #existing_content = st.session_state['logging_blob'].download_blob().readall().decode('utf-8')
-    #     with open(st.session_state['temp_logging_file_name'], "r") as temp_file:
-    #         content = temp_file.read()
-    #     st.session_state['logging_blob'].upload_blob(data=content, overwrite=True)
-    return logging_blob
+    return blob_client
 
 
 # summary data for analysis is sent to individual files per session
 # https://stackoverflow.com/questions/77600048/azure-function-logging-to-azure-blob-with-python
-def _setup_blob_storage_for_data_collecttion(filename):
+def _get_blob_for_session_data_logging(filename):
     container_client = _get_blog_container()
 
-    st.session_state['output_file'] = container_client.get_blob_client(filename)
+    blob_client = container_client.get_blob_client(filename)
     # Check if blob exists, if not create an append blob
     try:
-        st.session_state['output_file'].get_blob_properties()  # Check if blob exists
+        blob_client.get_blob_properties()  # Check if blob exists
     except:
         # Create an empty append blob if it doesn't exist
-        st.session_state['output_file'].create_append_blob()
+        blob_client.create_append_blob()
+    return blob_client
 
 
-def setup_for_azure(filename):
 
+def setup_for_azure():
     if 'service_provider' not in st.session_state:
         st.session_state['service_provider'] = 'azure'
 
-    # bypass keyvault and set up everything from environmental variables
-    if st.session_state['use_environmental_variables']:
-        if 'openai_api' not in st.session_state:
-            secret_name = "OPENAI_API_KEY_CEMAD"
-            openai_api_key = os.getenv(secret_name)
-            st.session_state['openai_client'] = OpenAI(api_key = openai_api_key)
-        if 'corpus_decryption_key' not in st.session_state:
-            secret_name = "DECRYPTION_KEY_CEMAD"
-            st.session_state['corpus_decryption_key'] = os.getenv(secret_name)
+    if "use_environmental_variables" not in st.session_state:
+        st.session_state['use_environmental_variables'] = True 
+        if st.session_state['use_environmental_variables']:
+            load_dotenv()
 
+            if 'openai_client' not in st.session_state:
+                openai_api_key = os.getenv("OPENAI_API_KEY_CEMAD")
+                st.session_state['openai_client'] = _get_openai_resource(openai_api_key)
+            if 'corpus_decryption_key' not in st.session_state:
+                st.session_state['corpus_decryption_key'] = os.getenv("DECRYPTION_KEY_CEMAD")
+            # blob storage for global and session logging
 
     else: # use key_vault
+        # https://medium.com/@tophamcherie/authenticating-connecting-to-azure-key-vault-or-resources-programmatically-2e1936618789
+        # https://learn.microsoft.com/en-us/entra/fundamentals/how-to-create-delete-users
+        # https://discuss.streamlit.io/t/get-active-directory-authentification-data/22105/57 / https://github.com/kevintupper/streamlit-auth-demo
         if 'key_vault' not in st.session_state:
             # https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.defaultazurecredential?view=azure-python
             # When the app is running in Azure, DefaultAzureCredential automatically detects if a managed identity exists for the App Service and, if so, uses it to access other Azure resources
@@ -116,13 +124,10 @@ def setup_for_azure(filename):
         if 'openai_api' not in st.session_state:
             secret_client = SecretClient(vault_url=st.session_state['key_vault'], credential=st.session_state['credential'])
             api_key = secret_client.get_secret(secret_name)
-            st.session_state['openai_client'] = OpenAI(api_key = api_key.value)
+            st.session_state['openai_client'] = openai_api_key(api_key.value)
 
-    _setup_blob_storage_for_data_collecttion(filename)
-    st.session_state['app_log_blob_file_name'] = "app_log_data.txt"
-    st.session_state['logging_blob'] = _setup_blob_storage_for_logging(st.session_state['app_log_blob_file_name'])
-
-    if not "password_correct" in st.session_state: # No passwords yet in Azure but passwords required for other pages
+    # No passwords yet in Azure but passwords required for other pages
+    if not "password_correct" in st.session_state: 
         st.session_state["password_correct"] = True
 
 
@@ -146,7 +151,7 @@ def setup_for_streamlit(insist_on_password = False):
         st.session_state['corpus_decryption_key'] = st.secrets["index"]["decryption_key"]
 
     if 'openai_api' not in st.session_state:
-        st.session_state['openai_client'] = OpenAI(api_key = st.secrets['openai']['OPENAI_API_KEY'])
+        st.session_state['openai_client'] = _get_openai_resource(st.secrets['openai']['OPENAI_API_KEY'])
 
         if not insist_on_password:
             if "password_correct" not in st.session_state.keys():
@@ -195,24 +200,37 @@ def setup_for_streamlit(insist_on_password = False):
             if not check_password():
                 st.stop()
 
+# Currently only set up for azure using environmental variables. Other options need to be built
+def setup_log_storage(filename):
+    if st.session_state['service_provider'] == 'azure':
+        if st.session_state['use_environmental_variables'] == True:
+            if 'blob_account_url' not in st.session_state:
+                st.session_state['blob_account_url'] = "https://chatlogsaccount.blob.core.windows.net/"
+                st.session_state['blob_container_name'] = os.getenv('BLOB_CONTAINER', 'cemadtest01') # set a default in case 'BLOB_CONTAINER' is not set
+                st.session_state['blob_store_key'] = os.getenv("CHAT_BLOB_STORE")
+                st.session_state['blob_client_for_session_data'] = _get_blob_for_session_data_logging(filename)
+                st.session_state['blob_name_for_global_logs'] = "app_log_data.txt"
+                st.session_state['blob_client_for_global_data'] = _get_blob_for_global_logging(st.session_state['blob_name_for_global_logs'])
+
+
 @st.cache_resource
 def load_cemad_corpus_index(key):
     logger.log(ANALYSIS_LEVEL, f"*** Loading cemad corpis index. This should only happen once")
     return CEMADCorpusIndex(key)
 
-def load_data(service_provider):
+def load_data():
     with st.spinner(text="Loading the excon documents and index - hang tight! This should take 5 seconds."):
         corpus_index = load_cemad_corpus_index(st.session_state['corpus_decryption_key'])
-
+        model_to_use =  "gpt-4o"
         rerank_algo = RerankAlgos.LLM
         rerank_algo.params["openai_client"] = st.session_state['openai_client']
-        rerank_algo.params["model_to_use"] = st.session_state['selected_model']
+        rerank_algo.params["model_to_use"] = model_to_use
         rerank_algo.params["user_type"] = corpus_index.user_type
         rerank_algo.params["corpus_description"] = corpus_index.corpus_description
         rerank_algo.params["final_token_cap"] = 5000 # can go large with the new models
 
         embedding_parameters = EmbeddingParameters("text-embedding-3-large", 1024)
-        chat_parameters = ChatParameters(chat_model = "gpt-4o", temperature = 0, max_tokens = 500)
+        chat_parameters = ChatParameters(chat_model = model_to_use, temperature = 0, max_tokens = 500)
         
         chat = CorpusChatCEMAD(openai_client = st.session_state['openai_client'],
                           embedding_parameters = embedding_parameters, 
@@ -224,18 +242,12 @@ def load_data(service_provider):
         return chat
 
 
-def write_data_to_output(text):
+def write_session_data_to_blob(text):
     if st.session_state['service_provider'] == 'azure':
-        # bespoke data per user
-        st.session_state['output_file'].append_block(text + "\n")
-        # logs
+        # Session log for user
+        st.session_state['blob_client_for_session_data'].append_block(text + "\n")
 
-        blob_exists = st.session_state['logging_blob'].exists()
-        if not blob_exists:
-            with open(st.session_state['temp_logging_file_name'], "rb") as temp_file:
-                container_client = _get_blog_container()
-                container_client.upload_blob(name=st.session_state['app_log_blob_file_name'], data=temp_file, content_settings=ContentSettings(content_type='text/plain'))
-        else:
-            with open(st.session_state['temp_logging_file_name'], "r") as temp_file:
-                content = temp_file.read()
-            st.session_state['logging_blob'].upload_blob(data=content, overwrite=True)
+def write_global_data_to_blob():
+    with open(st.session_state['global_logging_file_name'], "r") as temp_file:
+        content = temp_file.read()
+    st.session_state['blob_client_for_global_data'].upload_blob(data=content, overwrite=True)
