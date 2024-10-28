@@ -18,7 +18,7 @@ for message in st.session_state.messages_lookup:
 
 def clear_chat_history():
     st.session_state.messages_lookup = [{"role": "assistant", "content": "Which section are you after?"}]
-    write_session_data_to_blob('{"role": "action_section_lookup", "content": "Clear history"}')
+    write_session_data_to_blob('action_section_lookup: Clear history')
 
 
 with st.sidebar:
@@ -32,8 +32,7 @@ if prompt := st.chat_input(disabled= ('password_correct' not in st.session_state
     st.session_state.messages_lookup.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
-        log_entry = {"role": "user_section_lookup", "content": prompt}
-        write_session_data_to_blob(json.dumps(log_entry))
+        write_session_data_to_blob(f"user_section_lookup: {prompt}")
 
 
 # Generate a new response if last message is not from assistant
