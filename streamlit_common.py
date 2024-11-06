@@ -90,7 +90,7 @@ def setup_for_azure():
                 st.session_state['corpus_decryption_key'] = os.getenv("DECRYPTION_KEY_CEMAD")
             # blob storage for global and session logging
 
-    else: # use key_vault
+    else: # use key_vault: NOT WORKING but left here in case I get inspired
         # https://medium.com/@tophamcherie/authenticating-connecting-to-azure-key-vault-or-resources-programmatically-2e1936618789
         # https://learn.microsoft.com/en-us/entra/fundamentals/how-to-create-delete-users
         # https://discuss.streamlit.io/t/get-active-directory-authentification-data/22105/57 / https://github.com/kevintupper/streamlit-auth-demo
@@ -113,10 +113,10 @@ def setup_for_azure():
                 secret_client = SecretClient(vault_url=st.session_state['key_vault'], credential=st.session_state['credential'])
                 st.session_state['corpus_decryption_key'] = secret_client.get_secret(secret_name).value
 
-        if 'openai_api' not in st.session_state:
+        if 'openai_key' not in st.session_state:
             secret_client = SecretClient(vault_url=st.session_state['key_vault'], credential=st.session_state['credential'])
             api_key = secret_client.get_secret(secret_name)
-            st.session_state['openai_client'] = openai_api_key(api_key.value)
+            st.session_state['openai_key'] = api_key.value
 
     # No passwords yet in Azure but passwords required for other pages
     if not "password_correct" in st.session_state: 
@@ -128,22 +128,11 @@ def setup_for_streamlit(insist_on_password = False):
     if 'service_provider' not in st.session_state:
         st.session_state['service_provider'] = 'streamlit'
 
-    # test to see if we are running locally or on the streamlit cloud
-    if 'app_path' not in st.session_state:
-        test_variable = platform.processor()
-        if test_variable: # running locally
-            st.session_state['app_path'] = "http://localhost:8501"
-        else: # we are on the cloud
-            st.session_state['app_path'] = "https://exconmanualchat.streamlit.app/"
-
-    if 'output_folder' not in st.session_state:
-        st.session_state['output_folder'] = "./user_data/"
-
     if 'corpus_decryption_key' not in st.session_state:
         st.session_state['corpus_decryption_key'] = st.secrets["index"]["decryption_key"]
 
-    if 'openai_api' not in st.session_state:
-        st.session_state['openai_client'] = _get_openai_resource(st.secrets['openai']['OPENAI_API_KEY'])
+    if 'openai_key' not in st.session_state:
+        st.session_state['openai_key'] = st.secrets['openai']['OPENAI_API_KEY']
 
         if not insist_on_password:
             if "password_correct" not in st.session_state.keys():
@@ -194,10 +183,10 @@ def setup_for_streamlit(insist_on_password = False):
 
 # Currently only set up for azure using environmental variables. Other options need to be built
 def setup_log_storage(filename):
-    if st.session_state['service_provider'] == 'azure':
+    if 'service_provider' in st.session_state and st.session_state['service_provider'] == 'azure':
         if st.session_state['use_environmental_variables'] == True:
             if 'blob_account_url' not in st.session_state:
-                st.session_state['blob_account_url'] = "https://chatlogsaccount.blob.core.windows.net/"
+                st.session_state['blob_account_url'] = os.getenv('BLOB_ACCOUNT_URL', "https://chatlogsaccount.blob.core.windows.net/")
                 st.session_state['blob_container_name'] = os.getenv('BLOB_CONTAINER', 'cemadtest01') # set a default in case 'BLOB_CONTAINER' is not set
                 st.session_state['blob_store_key'] = os.getenv("CHAT_BLOB_STORE")
                 st.session_state['blob_client_for_session_data'] = _get_blob_for_session_data_logging(filename)
@@ -237,11 +226,12 @@ def load_data():
 
 
 def write_session_data_to_blob(text):
-    if st.session_state['service_provider'] == 'azure':
+    if 'service_provider' in st.session_state and st.session_state['service_provider'] == 'azure':
         # Session log for user
         st.session_state['blob_client_for_session_data'].append_block(text + "\n")
 
 def write_global_data_to_blob():
-    with open(st.session_state['global_logging_file_name'], "r") as temp_file:
-        content = temp_file.read()
-    st.session_state['blob_client_for_global_data'].upload_blob(data=content, overwrite=True)
+    if 'service_provider' in st.session_state and st.session_state['service_provider'] == 'azure':
+        with open(st.session_state['global_logging_file_name'], "r") as temp_file:
+            content = temp_file.read()
+        st.session_state['blob_client_for_global_data'].upload_blob(data=content, overwrite=True)
