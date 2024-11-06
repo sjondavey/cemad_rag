@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 
 import streamlit as st
 
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
+# from azure.identity import DefaultAzureCredential
+# from azure.keyvault.secrets import SecretClient
 from azure.storage.blob import BlobServiceClient, ContentSettings
 
 from regulations_rag.rerank import RerankAlgos
